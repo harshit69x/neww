@@ -11,6 +11,7 @@ import { BrandForm } from "@/components/brand-form"
 import { TypeForm } from "@/components/type-form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function InventoryDashboard() {
   const [products, setProducts] = useState<Product[]>([])
@@ -364,9 +365,12 @@ export function InventoryDashboard() {
   return (
     <div className="container mx-auto p-4">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
-          <p className="text-muted-foreground">Add, view, and manage your product inventory</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
+            <p className="text-muted-foreground">Add, view, and manage your product inventory</p>
+          </div>
+          <ThemeToggle />
         </div>
 
         <Tabs defaultValue="inventory">
