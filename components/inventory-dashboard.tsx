@@ -285,6 +285,74 @@ export function InventoryDashboard() {
     }
   }
 
+  const handleEditBrand = async (oldBrand: string, newBrand: string) => {
+    try {
+      const { error } = await supabase
+        .from("Brands")
+        .update({ Brand: newBrand })
+        .eq("Brand", oldBrand)
+
+      if (error) throw error
+
+      // Update products with the new brand name
+      const { error: productsError } = await supabase
+        .from("Products")
+        .update({ Brand: newBrand })
+        .eq("Brand", oldBrand)
+
+      if (productsError) throw productsError
+
+      toast({
+        title: "Success",
+        description: "Brand updated successfully",
+      })
+      
+      // Refresh your brands list
+      fetchData()
+    } catch (error: any) {
+      console.error("Error updating brand:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update brand",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleEditType = async (oldType: string, newType: string) => {
+    try {
+      const { error } = await supabase
+        .from("Type")
+        .update({ Type: newType })
+        .eq("Type", oldType)
+
+      if (error) throw error
+
+      // Update products with the new type name
+      const { error: productsError } = await supabase
+        .from("Products")
+        .update({ Type: newType })
+        .eq("Type", oldType)
+
+      if (productsError) throw productsError
+
+      toast({
+        title: "Success",
+        description: "Type updated successfully",
+      })
+      
+      // Refresh your types list
+      fetchData()
+    } catch (error: any) {
+      console.error("Error updating type:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update type",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleTypeSubmit = (typeData: Partial<ProductType>) => {
     // Handle type submission
   }
@@ -371,6 +439,7 @@ export function InventoryDashboard() {
                         </div>
                         <TypeForm
                           onSubmit={handleAddType}
+                          onEdit={handleEditType}  // Add this line
                           existingTypes={types}
                         />
                       </div>
@@ -398,6 +467,7 @@ export function InventoryDashboard() {
                         </div>
                         <BrandForm
                           onSubmit={handleAddBrand}
+                          onEdit={handleEditBrand}  // Add this line
                           existingBrands={brands.map(b => b.Brand)}
                         />
                       </div>
