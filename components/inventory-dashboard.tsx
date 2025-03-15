@@ -9,13 +9,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/components/ui/use-toast"
 import { BrandForm } from "@/components/brand-form"
 import { TypeForm } from "@/components/type-form"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 
 export function InventoryDashboard() {
   const [products, setProducts] = useState<Product[]>([])
-  const [brands, setBrands] = useState<Brand[]>([])
+
   const [productTypes, setProductTypes] = useState<ProductType[]>([])
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const [types, setTypes] = useState<string[]>([])
+  const [brands, setBrands] = useState<string[]>([])
 
   useEffect(() => {
     fetchData()
@@ -31,31 +35,19 @@ export function InventoryDashboard() {
       if (productsError) throw productsError
       setProducts(productsData || [])
 
-      // Fetch brands
+      // Fetch brands and store their names
       const { data: brandsData, error: brandsError } = await supabase.from("Brands").select("*")
-
       if (brandsError) throw brandsError
+      const existingBrandNames = brandsData.map(brand => brand.Brand)
       setBrands(brandsData || [])
-      console.log('brands are')
-      console.log(brandsData)
-      // Fetch product types - assuming there's a ProductTypes table
-      // If not, we can extract unique types from products
-      const { data: typesData, error: typesError } = await supabase.from("Type").select("*")
 
-      if (typesError) {
-        // If table doesn't exist, extract unique types from products
-        const uniqueTypes = [...new Set(productsData?.map((p) => p.Type))].map((type, index) => ({
-          Tid: index + 1,
-          Type: type as string,
-        }))
-        setProductTypes(uniqueTypes)
-        console.log('types are')
-        console.log(uniqueTypes)
-      } else {
-        setProductTypes(typesData || [])
-        console.log('types are')
-        console.log(typesData)
-      }
+      // Fetch types and store their names
+      const { data: typesData, error: typesError } = await supabase.from("Type").select("*")
+      if (typesError) throw typesError
+      const existingTypeNames = typesData.map(type => type.Type)
+      setTypes(existingTypeNames || [])
+      setProductTypes(typesData || [])
+
     } catch (error) {
       console.error("Error fetching data:", error)
       toast({
@@ -143,23 +135,23 @@ export function InventoryDashboard() {
     }
   }
 
-  const handleDeleteProduct = async (productId: number) => {
+  const handleDeleteProducts = async (productIds: number[]) => {
     try {
-      const { error } = await supabase.from("Products").delete().eq("Pid", productId)
+      const { error } = await supabase.from("Products").delete().in("Pid", productIds)
 
       if (error) throw error
 
       toast({
         title: "Success",
-        description: "Product deleted successfully",
+        description: "Products deleted successfully",
       })
 
       // No need to manually update state as the realtime subscription will handle it
     } catch (error: any) {
-      console.error("Error deleting product:", error)
+      console.error("Error deleting products:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to delete product",
+        description: error.message || "Failed to delete products",
         variant: "destructive",
       })
     }
@@ -193,6 +185,22 @@ export function InventoryDashboard() {
 
   const handleAddBrand = async (brandData: Partial<Brand>) => {
     try {
+      // Check if brand already exists
+      const { data: existingBrand } = await supabase
+        .from("Brands")
+        .select("Brand")
+        .eq("Brand", brandData.Brand)
+        .single()
+
+      if (existingBrand) {
+        toast({
+          title: "Error",
+          description: "This brand already exists",
+          variant: "destructive",
+        })
+        return
+      }
+
       // Fetch the latest Bid
       const { data: latestBrand, error: fetchError } = await supabase
         .from("Brands")
@@ -228,6 +236,22 @@ export function InventoryDashboard() {
 
   const handleAddType = async (typeData: Partial<ProductType>) => {
     try {
+      // Check if type already exists
+      const { data: existingType } = await supabase
+        .from("Type")
+        .select("Type")
+        .eq("Type", typeData.Type)
+        .single()
+
+      if (existingType) {
+        toast({
+          title: "Error",
+          description: "This type already exists",
+          variant: "destructive",
+        })
+        return
+      }
+
       // Fetch the latest Tid
       const { data: latestType, error: fetchError } = await supabase
         .from("Type")
@@ -261,75 +285,130 @@ export function InventoryDashboard() {
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
-        <p className="text-muted-foreground">Add, view, and manage your product inventory</p>
-      </div>
+  const handleTypeSubmit = (typeData: Partial<ProductType>) => {
+    // Handle type submission
+  }
 
-      <Tabs defaultValue="inventory">
-        <TabsList>
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="add-product">Add Product</TabsTrigger>
-          <TabsTrigger value="add-brand">Add Brand</TabsTrigger>
-          <TabsTrigger value="add-type">Add Type</TabsTrigger>
-        </TabsList>
-        <TabsContent value="inventory" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Inventory</CardTitle>
-              <CardDescription>View and manage your current inventory</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ProductTable
-                products={products}
-                loading={loading}
-                onDelete={handleDeleteProduct}
-                onUpdateQuantity={handleUpdateQuantity}
-                setProducts={setProducts}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="add-product" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add New Product</CardTitle>
-              <CardDescription>Add a new product to your inventory</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ProductForm
-                brands={brands}
-                productTypes={productTypes}
-                onSubmit={handleAddProduct}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="add-brand" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add New Brand</CardTitle>
-              <CardDescription>Add a new brand to your inventory</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BrandForm onSubmit={handleAddBrand} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="add-type" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Add New Type</CardTitle>
-              <CardDescription>Add a new type to your inventory</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TypeForm onSubmit={handleAddType} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+  const handleBrandSubmit = (brandData: Partial<Brand>) => {
+    // Handle brand submission
+  }
+
+  return (
+    <div className="container mx-auto p-4">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
+          <p className="text-muted-foreground">Add, view, and manage your product inventory</p>
+        </div>
+
+        <Tabs defaultValue="inventory">
+          <TabsList>
+            <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="add-product">Add Product</TabsTrigger>
+            <TabsTrigger value="manage">Manage Types & Brands</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="inventory" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Inventory</CardTitle>
+                <CardDescription>View and manage your current inventory</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProductTable
+                  products={products}
+                  loading={loading}
+                  onDelete={handleDeleteProducts}
+                  onUpdateQuantity={handleUpdateQuantity}
+                  setProducts={setProducts}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="add-product" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Add New Product</CardTitle>
+                <CardDescription>Add a new product to your inventory</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProductForm
+                  brands={brands}
+                  productTypes={productTypes}
+                  onSubmit={handleAddProduct}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="manage" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Types & Brands</CardTitle>
+                <CardDescription>Add new types and brands to your inventory</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold mb-4">Product Types</h2>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="existing-type">Existing Types</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="View existing types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {productTypes.map((type) => (
+                                <SelectItem key={type.Tid} value={type.Type}>
+                                  {type.Type}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <TypeForm
+                          onSubmit={handleAddType}
+                          existingTypes={types}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold mb-4">Brands</h2>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="existing-brand">Existing Brands</Label>
+                          <Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="View existing brands" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {brands.map((brand) => (
+                                <SelectItem key={brand.Bid} value={brand.Brand}>
+                                  {brand.Brand}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <BrandForm
+                          onSubmit={handleAddBrand}
+                          existingBrands={brands.map(b => b.Brand)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

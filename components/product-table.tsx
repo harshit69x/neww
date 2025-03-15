@@ -23,7 +23,7 @@ import { useToast } from "@/components/ui/use-toast"
 interface ProductTableProps {
   products: Product[]
   loading: boolean
-  onDelete: (productId: number) => void
+  onDelete: (productIds: number[]) => void
   onUpdateQuantity: (productId: number, quantity: number) => void
   setProducts: Dispatch<SetStateAction<Product[]>>
 }
@@ -31,6 +31,7 @@ interface ProductTableProps {
 export function ProductTable({ products, loading, onDelete, onUpdateQuantity, setProducts }: ProductTableProps) {
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
+  const [selectedProducts, setSelectedProducts] = useState<number[]>([])
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [editingProductId, setEditingProductId] = useState<number | null>(null)
   const [editFormData, setEditFormData] = useState<Partial<Product>>({})
@@ -62,13 +63,26 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
       product.Type.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
+  const handleSelectProduct = (productId: number) => {
+    setSelectedProducts((prevSelected) =>
+      prevSelected.includes(productId)
+        ? prevSelected.filter((id) => id !== productId)
+        : [...prevSelected, productId]
+    )
+  }
+
+  const handleDeleteSelected = () => {
+    onDelete(selectedProducts)
+    setSelectedProducts([])
+  }
+
   const handleDeleteClick = (product: Product) => {
     setProductToDelete(product)
   }
 
   const confirmDelete = () => {
     if (productToDelete) {
-      onDelete(productToDelete.Pid)
+      onDelete([productToDelete.Pid])
       setProductToDelete(null)
     }
   }
@@ -224,6 +238,7 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[80px]">Select</TableHead>
               <TableHead className="w-[80px]">Image</TableHead>
               <TableHead>Product</TableHead>
               <TableHead>Brand</TableHead>
@@ -237,13 +252,20 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   No products found.
                 </TableCell>
               </TableRow>
             ) : (
               filteredProducts.map((product) => (
                 <TableRow key={product.Pid}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedProducts.includes(product.Pid)}
+                      onChange={() => handleSelectProduct(product.Pid)}
+                    />
+                  </TableCell>
                   <TableCell>
                     <div className="relative h-10 w-10 overflow-hidden rounded-md">
                       <img
@@ -341,9 +363,21 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <button onClick={() => onUpdateQuantity(product.Pid, product.Quantity - 1)}>-</button>
-                    {product.Quantity}
-                    <button onClick={() => onUpdateQuantity(product.Pid, product.Quantity + 1)}>+</button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => onUpdateQuantity(product.Pid, product.Quantity - 1)}
+                        className="w-6 h-6 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-100"
+                      >
+                        -
+                      </button>
+                      <span className="mx-2">{product.Quantity}</span>
+                      <button 
+                        onClick={() => onUpdateQuantity(product.Pid, product.Quantity + 1)}
+                        className="w-6 h-6 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-100"
+                      >
+                        +
+                      </button>
+                    </div>
                   </TableCell>
                   <TableCell>
                     {editingProductId === product.Pid ? (
@@ -361,6 +395,10 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
           </TableBody>
         </Table>
       </div>
+
+      <Button onClick={handleDeleteSelected} disabled={selectedProducts.length === 0}>
+        Delete Selected
+      </Button>
 
       <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
         <AlertDialogContent>
