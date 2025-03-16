@@ -2,17 +2,23 @@ import React, { useState } from "react"
 import { Brand } from "@/lib/supabase"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { Pencil } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react" // Add Trash2 icon
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type BrandFormProps = {
   onSubmit: (brandData: Partial<Brand>) => void
   onEdit: (oldBrand: string, newBrand: string) => void
+  onDelete: (brand: string) => void // Add delete handler prop
   existingBrands: string[]
 }
 
-export const BrandForm: React.FC<BrandFormProps> = ({ onSubmit, onEdit, existingBrands = [] }) => {
+export const BrandForm: React.FC<BrandFormProps> = ({ 
+  onSubmit, 
+  onEdit, 
+  onDelete, // Add delete handler
+  existingBrands = [] 
+}) => {
   const [brandData, setBrandData] = useState<Partial<Brand>>({})
   const [isEditing, setIsEditing] = useState(false)
   const [selectedBrand, setSelectedBrand] = useState("")
@@ -76,6 +82,20 @@ export const BrandForm: React.FC<BrandFormProps> = ({ onSubmit, onEdit, existing
     setIsEditing(false)
     setSelectedBrand("")
     setEditValue("")
+  }
+
+  const handleDelete = () => {
+    if (!selectedBrand) {
+      toast.error("Please select a brand to delete")
+      return
+    }
+
+    if (window.confirm(`Are you sure you want to delete brand "${selectedBrand}"?`)) {
+      onDelete(selectedBrand)
+      setIsEditing(false)
+      setSelectedBrand("")
+      setEditValue("")
+    }
   }
 
   return (
@@ -158,6 +178,16 @@ export const BrandForm: React.FC<BrandFormProps> = ({ onSubmit, onEdit, existing
             >
               Update Brand
             </button>
+            {selectedBrand && (
+              <Button 
+                type="button" 
+                variant="destructive"
+                onClick={handleDelete}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            )}
             <Button 
               type="button" 
               variant="outline"

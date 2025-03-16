@@ -354,6 +354,94 @@ export function InventoryDashboard() {
     }
   }
 
+  const handleDeleteBrand = async (brand: string) => {
+    try {
+      // First check if brand exists in products table
+      const { data: productsWithBrand, error: checkError } = await supabase
+        .from("Products")
+        .select("Pid")
+        .eq("Brand", brand)
+
+      if (checkError) throw checkError
+
+      // If products exist with this brand, update them first
+      if (productsWithBrand && productsWithBrand.length > 0) {
+        const { error: productsError } = await supabase
+          .from("Products")
+          .update({ Brand: null, Bid: null })
+          .eq("Brand", brand)
+
+        if (productsError) throw productsError
+      }
+
+      // Then delete the brand
+      const { error } = await supabase
+        .from("Brands")
+        .delete()
+        .eq("Brand", brand)
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: "Brand and its references deleted successfully",
+      })
+      
+      fetchData()
+    } catch (error: any) {
+      console.error("Error deleting brand:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete brand",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteType = async (type: string) => {
+    try {
+      // First check if type exists in products table
+      const { data: productsWithType, error: checkError } = await supabase
+        .from("Products")
+        .select("Pid")
+        .eq("Type", type)
+
+      if (checkError) throw checkError
+
+      // If products exist with this type, update them first
+      if (productsWithType && productsWithType.length > 0) {
+        const { error: productsError } = await supabase
+          .from("Products")
+          .update({ Type: null, Tid: null })
+          .eq("Type", type)
+
+        if (productsError) throw productsError
+      }
+
+      // Then delete the type
+      const { error } = await supabase
+        .from("Type")
+        .delete()
+        .eq("Type", type)
+
+      if (error) throw error
+
+      toast({
+        title: "Success",
+        description: "Type and its references deleted successfully",
+      })
+      
+      fetchData()
+    } catch (error: any) {
+      console.error("Error deleting type:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete type",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleTypeSubmit = (typeData: Partial<ProductType>) => {
     // Handle type submission
   }
@@ -445,6 +533,7 @@ export function InventoryDashboard() {
                           onSubmit={handleAddType}
                           onEdit={handleEditType}  // Add this line
                           existingTypes={types}
+                          onDelete={handleDeleteType}
                         />
                       </div>
                     </div>
@@ -473,6 +562,7 @@ export function InventoryDashboard() {
                           onSubmit={handleAddBrand}
                           onEdit={handleEditBrand}  // Add this line
                           existingBrands={brands.map(b => b.Brand)}
+                          onDelete={handleDeleteBrand}
                         />
                       </div>
                     </div>

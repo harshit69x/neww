@@ -2,17 +2,18 @@ import React, { useState } from "react"
 import { ProductType } from "@/lib/supabase"
 import { toast, ToastContainer } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
-import { Pencil } from "lucide-react"
+import { Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type TypeFormProps = {
   onSubmit: (typeData: Partial<ProductType>) => void
   onEdit: (oldType: string, newType: string) => void
+  onDelete: (type: string) => void
   existingTypes: string[]
 }
 
-export const TypeForm: React.FC<TypeFormProps> = ({ onSubmit, onEdit, existingTypes = [] }) => {
+export const TypeForm: React.FC<TypeFormProps> = ({ onSubmit, onEdit, onDelete, existingTypes = [] }) => {
   const [typeData, setTypeData] = useState<Partial<ProductType>>({})
   const [isEditing, setIsEditing] = useState(false)
   const [selectedType, setSelectedType] = useState("")
@@ -76,6 +77,20 @@ export const TypeForm: React.FC<TypeFormProps> = ({ onSubmit, onEdit, existingTy
     setIsEditing(false)
     setSelectedType("")
     setEditValue("")
+  }
+
+  const handleDelete = () => {
+    if (!selectedType) {
+      toast.error("Please select a type to delete")
+      return
+    }
+
+    if (window.confirm(`Are you sure you want to delete type "${selectedType}"?`)) {
+      onDelete(selectedType)
+      setIsEditing(false)
+      setSelectedType("")
+      setEditValue("")
+    }
   }
 
   return (
@@ -158,6 +173,16 @@ export const TypeForm: React.FC<TypeFormProps> = ({ onSubmit, onEdit, existingTy
             >
               Update Type
             </button>
+            {selectedType && (
+              <Button 
+                type="button" 
+                variant="destructive"
+                onClick={handleDelete}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            )}
             <Button 
               type="button" 
               variant="outline"
