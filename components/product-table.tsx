@@ -267,18 +267,43 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
                     />
                   </TableCell>
                   <TableCell>
-                    <div className="relative h-10 w-10 overflow-hidden rounded-md">
-                      <img
-                        src={product.ProductImg || "/placeholder.svg?height=40&width=40"}
-                        alt={product.Product}
-                        className="object-cover"
-                        width={40}
-                        height={40}
-                        onError={(e) => {
-                          ;(e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"
-                        }}
-                      />
-                    </div>
+                    {editingProductId === product.Pid ? (
+                      <div className="space-y-2">
+                        <Input
+                          type="text"
+                          name="ProductImg"
+                          value={editFormData.ProductImg || ""}
+                          onChange={handleEditChange}
+                          placeholder="Image URL"
+                          className="w-full"
+                        />
+                        <div className="relative h-10 w-10 overflow-hidden rounded-md">
+                          <img
+                            src={editFormData.ProductImg || "/placeholder.svg?height=40&width=40"}
+                            alt="Preview"
+                            className="object-cover"
+                            width={40}
+                            height={40}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative h-10 w-10 overflow-hidden rounded-md">
+                        <img
+                          src={product.ProductImg || "/placeholder.svg?height=40&width=40"}
+                          alt={product.Product}
+                          className="object-cover"
+                          width={40}
+                          height={40}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"
+                          }}
+                        />
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="font-medium">
                     {editingProductId === product.Pid ? (
