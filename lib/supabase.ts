@@ -17,6 +17,7 @@ export type Product = {
   Brand: string
   Bid: number
   Quantity:number
+  Size: string
 }
 
 export type Brand = {

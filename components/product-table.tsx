@@ -116,9 +116,14 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
       }
     }
 
+    // Handle different input types
     setEditFormData((prev) => ({ 
       ...prev, 
-      [name]: name === 'Mrp' || name === 'Sp' ? parseFloat(value) : value 
+      [name]: name === 'Mrp' || name === 'Sp' 
+        ? parseFloat(value)
+        : name === 'Size'
+          ? value.toUpperCase() // Convert size to uppercase
+          : value 
     }));
   };
 
@@ -144,7 +149,7 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
 
   const handleSaveClick = async (productId: number) => {
     try {
-      // Convert prices properly - don't multiply by 100
+      // Convert prices properly
       const mrp = parseFloat(editFormData.Mrp?.toString() || '0')
       const sp = parseFloat(editFormData.Sp?.toString() || '0')
 
@@ -165,8 +170,10 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
       const updatedData = {
         ...editFormData,
         Product: combinedProductName,
-        Mrp: mrp, // Don't multiply by 100
-        Sp: sp,   // Don't multiply by 100
+        Mrp: mrp,
+        Sp: sp,
+        Size: editFormData.Size?.toUpperCase() || null, // Add this line
+        ProductImg: editFormData.ProductImg || null,
         Bid: brands.find(b => b.Brand === editFormData.Brand)?.Bid || null,
         Tid: productTypes.find(t => t.Type === editFormData.Type)?.Tid || null
       }
@@ -178,15 +185,16 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
 
       if (error) throw error
 
-      // Update local state without any price conversion
+      // Update local state
       setProducts((prevProducts) =>
         prevProducts.map((product) =>
           product.Pid === productId ? { 
             ...product, 
             ...updatedData,
             Product: combinedProductName,
-            Mrp: mrp, // Keep original values
-            Sp: sp
+            Mrp: mrp,
+            Sp: sp,
+            Size: editFormData.Size?.toUpperCase() || null // Add this line
           } : product
         )
       )
@@ -243,6 +251,7 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
               <TableHead>Product</TableHead>
               <TableHead>Brand</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Size</TableHead>
               <TableHead className="text-right">MRP</TableHead>
               <TableHead className="text-right">Selling Price</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
@@ -252,7 +261,7 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
           <TableBody>
             {filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
+                <TableCell colSpan={10} className="h-24 text-center">
                   No products found.
                 </TableCell>
               </TableRow>
@@ -267,152 +276,49 @@ export function ProductTable({ products, loading, onDelete, onUpdateQuantity, se
                     />
                   </TableCell>
                   <TableCell>
-                    {editingProductId === product.Pid ? (
-                      <div className="space-y-2">
-                        <Input
-                          type="text"
-                          name="ProductImg"
-                          value={editFormData.ProductImg || ""}
-                          onChange={handleEditChange}
-                          placeholder="Image URL"
-                          className="w-full"
-                        />
-                        <div className="relative h-10 w-10 overflow-hidden rounded-md">
-                          <img
-                            src={editFormData.ProductImg || "/placeholder.svg?height=40&width=40"}
-                            alt="Preview"
-                            className="object-cover"
-                            width={40}
-                            height={40}
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"
-                            }}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="relative h-10 w-10 overflow-hidden rounded-md">
-                        <img
-                          src={product.ProductImg || "/placeholder.svg?height=40&width=40"}
-                          alt={product.Product}
-                          className="object-cover"
-                          width={40}
-                          height={40}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"
-                          }}
-                        />
-                      </div>
-                    )}
+                    <div className="relative h-10 w-10 overflow-hidden rounded-md">
+                      <img
+                        src={product.ProductImg || "/placeholder.svg?height=40&width=40"}
+                        alt={product.Product}
+                        className="object-cover"
+                        width={40}
+                        height={40}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40"
+                        }}
+                      />
+                    </div>
                   </TableCell>
-                  <TableCell className="font-medium">
+                  <TableCell className="font-medium">{product.Product}</TableCell>
+                  <TableCell>{product.Brand}</TableCell>
+                  <TableCell>{product.Type}</TableCell>
+                  <TableCell>
                     {editingProductId === product.Pid ? (
                       <Input
                         type="text"
-                        name="Product"
-                        value={editFormData.Product || ""}
+                        name="Size"
+                        value={editFormData.Size || ""}
                         onChange={handleEditChange}
+                        placeholder="Enter size"
                       />
                     ) : (
-                      product.Product
+                      product.Size || '-'
                     )}
                   </TableCell>
+                  <TableCell className="text-right">{formatPrice(product.Mrp)}</TableCell>
+                  <TableCell className="text-right">{formatPrice(product.Sp)}</TableCell>
+                  <TableCell className="text-right">{product.Quantity}</TableCell>
                   <TableCell>
-                    {editingProductId === product.Pid ? (
-                      <Select
-                        value={editFormData.Brand || ""}
-                        onValueChange={(value) => handleSelectChange("Brand", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select brand" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {brands.map((brand) => (
-                            <SelectItem key={brand.Bid} value={brand.Brand}>
-                              {brand.Brand}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      product.Brand
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {editingProductId === product.Pid ? (
-                      <Select
-                        value={editFormData.Type || ""}
-                        onValueChange={(value) => handleSelectChange("Type", value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {productTypes.map((type) => (
-                            <SelectItem key={type.Tid} value={type.Type}>
-                              {type.Type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      product.Type
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {editingProductId === product.Pid ? (
-                      <Input
-                        type="number"
-                        name="Mrp"
-                        value={editFormData.Mrp || ''}
-                        onChange={handleEditChange}
-                        min={editFormData.Sp || 0}
-                        step="0.01"
-                      />
-                    ) : (
-                      formatPrice(product.Mrp)
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {editingProductId === product.Pid ? (
-                      <Input
-                        type="number"
-                        name="Sp"
-                        value={editFormData.Sp || ''}
-                        onChange={handleEditChange}
-                        max={editFormData.Mrp || Infinity}
-                        step="0.01"
-                      />
-                    ) : (
-                      formatPrice(product.Sp)
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={() => onUpdateQuantity(product.Pid, product.Quantity - 1)}
-                        className="w-6 h-6 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-100"
-                      >
-                        -
-                      </button>
-                      <span className="mx-2">{product.Quantity}</span>
-                      <button 
-                        onClick={() => onUpdateQuantity(product.Pid, product.Quantity + 1)}
-                        className="w-6 h-6 border border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-100"
-                      >
-                        +
-                      </button>
+                    <div className="flex gap-2">
+                      {editingProductId === product.Pid ? (
+                        <Button onClick={() => handleSaveClick(product.Pid)}>Save</Button>
+                      ) : (
+                        <Button onClick={() => handleEditClick(product)}>Edit</Button>
+                      )}
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(product)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {editingProductId === product.Pid ? (
-                      <Button onClick={() => handleSaveClick(product.Pid)}>Save</Button>
-                    ) : (
-                      <Button onClick={() => handleEditClick(product)}>Edit</Button>
-                    )}
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(product)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))
